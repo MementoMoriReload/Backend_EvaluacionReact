@@ -18,7 +18,6 @@ import com.example.Edificio.DTO.MovimientoResponse;
 import com.example.Edificio.DTO.PersonaResponse;
 import com.example.Edificio.Exception.ApiException;
 import com.example.Edificio.model.Edificio;
-import com.example.Edificio.model.Estado;
 import com.example.Edificio.model.Persona;
 import com.example.Edificio.repository.EdificioRepository;
 import com.example.Edificio.repository.PersonaRepository;
@@ -43,15 +42,12 @@ public class AccesoService {
 
     public Map<String, List<PersonaResponse>> obtenerDatos() {
         Map<String, List<PersonaResponse>> datos = new LinkedHashMap<>();
-        edificios.findAll(Sort.by("edificioId")).forEach(e ->
-                datos.put(
-                        e.getEdificioId(),
-                        personas.findByEdificio_EdificioIdOrderByPersonaIdAsc(e.getEdificioId())
-                                .stream()
-                                .map(PersonaResponse::new)
-                                .toList()
-                )
-        );
+        edificios.findAll(Sort.by("edificioId")).forEach(e -> datos.put(
+                e.getEdificioId(),
+                personas.findByEdificio_EdificioIdOrderByPersonaIdAsc(e.getEdificioId())
+                        .stream()
+                        .map(PersonaResponse::new)
+                        .toList()));
         return datos;
     }
 
@@ -64,56 +60,24 @@ public class AccesoService {
     }
 
     @Transactional
-    public MovimientoResponse registrar(MovimientoRequest m) {
-        Edificio e = edificios.findById(m.edificioId())
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "El edificio " + m.edificioId() + " no existe"
-                ));
+    public MovimientoResponse registrar(MovimientoRequest req) {
+        Edificio edificio = edificios.findById(req.edificioId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND,
+                        "El edificio " + req.edificioId() + " no existe"));
 
-        String tipo = m.tipo() != null ? m.tipo().trim() : "";
-        boolean esEntrada;
-        if (tipo.startsWith("Entrada")) {
-            esEntrada = true;
-        } else if (tipo.startsWith("Salida")) {
-            esEntrada = false;
-        } else {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Tipo de movimiento inválido: " + m.tipo());
-        }
+        String rut = req.rut().trim().toUpperCase();
 
-        boolean visitante = tipo.endsWith("Visitante");
-        String rut = m.rut() != null ? m.rut().trim().toUpperCase() : "";
-        String nomPersona = m.nomPersona() != null ? m.nomPersona().trim() : "";
-        String hora = LocalTime.now(CHILE).format(HH_MM);
-
-        Persona p = personas.findByEdificio_EdificioIdAndRut(e.getEdificioId(), rut)
-                .orElseGet(() -> Persona.builder()
-                        .edificio(e)
-                        .rut(rut)
-                        .estado(Estado.Fuera)
-                        .build());
-
-        Estado estadoAnterior = p.getEstado();
-        Estado nuevoEstado = esEntrada ? Estado.Dentro : Estado.Fuera;
-
-        p.setNomPersona(nomPersona);
-        p.setEstado(nuevoEstado);
-        p.setHora(hora);
-        p.setVisitante(visitante);
+        Persona p = personas.findByEdificio_EdificioIdAndRut(edificio.getEdificioId(), rut)
+                .orElseGet(() -> Persona.builder().edificio(edificio).rut(rut).build());
+        p.setNomPersona(req.nomPersona().trim());
+        p.setEstado(req.tipo().getEstado());
+        p.setHora(LocalTime.now(CHILE).format(HH_MM));
+        p.setVisitante(req.visitante());
         personas.save(p);
 
-        if (estadoAnterior != Estado.Dentro && nuevoEstado == Estado.Dentro) {
-            e.setCantidad(e.getCantidad() + 1);
-            edificios.save(e);
-        } else if (estadoAnterior == Estado.Dentro && nuevoEstado != Estado.Dentro) {
-            e.setCantidad(Math.max(0, e.getCantidad() - 1));
-            edificios.save(e);
-        }
-
         return new MovimientoResponse(
-                p.getNomPersona() + ": " + (esEntrada ? "entrada" : "salida") + " registrada.",
-                new PersonaResponse(p)
-        );
+                p.getNomPersona() + ": " + req.tipo().getEtiqueta() + " registrada.",
+                new PersonaResponse(p));
     }
 
     @Transactional

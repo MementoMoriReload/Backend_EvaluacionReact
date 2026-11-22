@@ -14,8 +14,9 @@ import java.util.List;
 import java.util.Map;
 
 @RequiredArgsConstructor
-@RestController 
+@RestController
 @RequestMapping("/api/v1/Edificio")
+@CrossOrigin(origins = "http://localhost:5173")
 public class EdificioController {
     private final AccesoService service;
 
@@ -25,17 +26,17 @@ public class EdificioController {
     }
 
     @GetMapping
-    private List<EdificioResponse> edificios(){
+    private List<EdificioResponse> edificios() {
         return service.listar();
     }
 
     @GetMapping("/personas")
-    public Map<String, List<PersonaResponse>> datos(){
+    public Map<String, List<PersonaResponse>> datos() {
         return service.obtenerDatos();
     }
 
     @GetMapping("/personas/{id}")
-    public List<PersonaResponse> personas(@PathVariable String id){
+    public List<PersonaResponse> personas(@PathVariable String id) {
         return service.obtenerPersonas(id);
     }
 
