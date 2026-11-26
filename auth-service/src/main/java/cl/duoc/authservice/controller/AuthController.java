@@ -11,8 +11,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
+@Tag(name = "Auth", description = "Registro y login")
 @RequestMapping("/api/v1/auth")
 @CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
@@ -25,6 +28,7 @@ public class AuthController {
         this.encoder = encoder;
     }
 
+    @Operation(summary = "Registrar un nuevo usuario")
     @PostMapping("/registro")
     public ResponseEntity<UsuarioResponse> registro(@Valid @RequestBody RegistroRequest r) {
         if (repo.existsByRutOrEmail(r.rut(), r.email())) {
@@ -40,6 +44,7 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(toDto(u));
     }
 
+    @Operation(summary = "Iniciar sesión")
     @PostMapping("/login")
     public UsuarioResponse login(@Valid @RequestBody LoginRequest r) {
         Usuario u = repo.findByRutOrEmail(r.username(), r.username())
