@@ -19,7 +19,6 @@ import java.util.Map;
 @Tag(name = "Edificio", description = "Control de entradas y salidas por edificio")
 @RestController
 @RequestMapping("/api/v1/Edificio")
-@CrossOrigin(origins = "http://localhost:5173")
 public class EdificioController {
     private final AccesoService service;
 
@@ -31,7 +30,7 @@ public class EdificioController {
 
     @Operation(summary = "Listar edificios")
     @GetMapping
-    private List<EdificioResponse> edificios() {
+    public List<EdificioResponse> edificios() {
         return service.listar();
     }
 
@@ -48,7 +47,7 @@ public class EdificioController {
     }
 
     @Operation(summary = "Eliminar una persona de un edificio por RUT")
-    @DeleteMapping("/personas/{rut}")
+    @DeleteMapping("/personas/{id}/{rut}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable String id, @PathVariable String rut) {
         service.eliminar(id, rut);

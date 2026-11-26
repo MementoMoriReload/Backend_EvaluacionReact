@@ -17,7 +17,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @Tag(name = "Auth", description = "Registro y login")
 @RequestMapping("/api/v1/auth")
-@CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
 
     private final UsuarioRepository repo;
