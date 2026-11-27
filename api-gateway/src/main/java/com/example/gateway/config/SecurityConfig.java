@@ -10,13 +10,26 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverterAdapter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+
+import reactor.core.publisher.Mono;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverterAdapter;
+import reactor.core.publisher.Mono;
 
 /**
  * Seguridad del gateway, controlada por propiedades:
@@ -33,27 +46,38 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 public class SecurityConfig {
 
     @Bean
-    SecurityWebFilterChain securityWebFilterChain(
-            ServerHttpSecurity http,
-            @Value("${gateway.security.enabled:false}") boolean enabled,
-            @Value("${gateway.security.public-paths:/actuator/health}") String[] publicPaths) {
+SecurityWebFilterChain securityWebFilterChain(
+        ServerHttpSecurity http,
+        @Value("${gateway.security.enabled:false}") boolean enabled,
+        @Value("${gateway.security.public-paths:/actuator/health}") String[] publicPaths) {
 
-        http.csrf(ServerHttpSecurity.CsrfSpec::disable)
-            .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
-            .formLogin(ServerHttpSecurity.FormLoginSpec::disable);
+    http.csrf(ServerHttpSecurity.CsrfSpec::disable)
+        .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
+        .formLogin(ServerHttpSecurity.FormLoginSpec::disable);
 
-        if (enabled) {
-            http.authorizeExchange(exchanges -> exchanges
-                    // El preflight de CORS nunca lleva token
-                    .pathMatchers(HttpMethod.OPTIONS).permitAll()
-                    .pathMatchers(publicPaths).permitAll()
-                    .anyExchange().authenticated())
-                .oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults()));
-        } else {
-            http.authorizeExchange(exchanges -> exchanges.anyExchange().permitAll());
-        }
-        return http.build();
+    if (enabled) {
+        http.authorizeExchange(ex -> ex
+                .pathMatchers(HttpMethod.OPTIONS).permitAll()
+                .pathMatchers(publicPaths).permitAll()
+                .pathMatchers(HttpMethod.DELETE, "/api/v1/edificio/**").hasRole("Administrador")
+                .pathMatchers("/api/v1/edificio/**").hasAnyRole("Administrador", "Guardia")
+                .anyExchange().authenticated())
+            .oauth2ResourceServer(oauth -> oauth.jwt(jwt ->
+                    jwt.jwtAuthenticationConverter(rolConverter())));
+    } else {
+        http.authorizeExchange(ex -> ex.anyExchange().permitAll());
     }
+    return http.build();
+}
+
+private Converter<Jwt, Mono<AbstractAuthenticationToken>> rolConverter() {
+    JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
+    authorities.setAuthoritiesClaimName("rol");
+    authorities.setAuthorityPrefix("ROLE_");
+    JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+    converter.setJwtGrantedAuthoritiesConverter(authorities);
+    return new ReactiveJwtAuthenticationConverterAdapter(converter);
+}
 
     @Bean
     @ConditionalOnProperty(name = "gateway.security.enabled", havingValue = "true")

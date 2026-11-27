@@ -18,7 +18,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Tag(name = "Edificio", description = "Control de entradas y salidas por edificio")
 @RestController
-@RequestMapping("/api/v1/Edificio")
+@RequestMapping("/api/v1/edificio")
 public class EdificioController {
     private final AccesoService service;
 

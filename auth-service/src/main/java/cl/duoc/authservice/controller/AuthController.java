@@ -1,10 +1,13 @@
 package cl.duoc.authservice.controller;
 
+import cl.duoc.authservice.dto.AuthResponse;
 import cl.duoc.authservice.dto.LoginRequest;
 import cl.duoc.authservice.dto.RegistroRequest;
 import cl.duoc.authservice.dto.UsuarioResponse;
 import cl.duoc.authservice.model.Usuario;
 import cl.duoc.authservice.repository.UsuarioRepository;
+import cl.duoc.authservice.security.JwtService;
+
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,10 +24,12 @@ public class AuthController {
 
     private final UsuarioRepository repo;
     private final PasswordEncoder encoder;
+    private final JwtService jwt;
 
-    public AuthController(UsuarioRepository repo, PasswordEncoder encoder) {
+    public AuthController(UsuarioRepository repo, PasswordEncoder encoder, JwtService jwt) {
         this.repo = repo;
         this.encoder = encoder;
+        this.jwt = jwt;
     }
 
     @Operation(summary = "Registrar un nuevo usuario")
@@ -45,12 +50,12 @@ public class AuthController {
 
     @Operation(summary = "Iniciar sesión")
     @PostMapping("/login")
-    public UsuarioResponse login(@Valid @RequestBody LoginRequest r) {
-        Usuario u = repo.findByRutOrEmail(r.username(), r.username())
-                .filter(x -> encoder.matches(r.password(), x.getPasswordHash()))
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED, "RUT/Usuario o contraseña incorrectos."));
-        return toDto(u);
+    public AuthResponse login(@Valid @RequestBody LoginRequest r) {
+       Usuario u = repo.findByRutOrEmail(r.username(), r.username())
+            .filter(x -> encoder.matches(r.password(), x.getPasswordHash()))
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "RUT/Usuario o contraseña incorrectos."));
+    return new AuthResponse(jwt.generar(u), "Bearer", jwt.getExpiresInSeconds(), toDto(u));
     }
 
     private UsuarioResponse toDto(Usuario u) {
