@@ -1,7 +1,15 @@
 package cl.duoc.authservice.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@AllArgsConstructor
+@NoArgsConstructor
+@Setter
+@Getter
 @Entity
 @Table(name = "usuarios")
 public class Usuario {
@@ -22,18 +30,7 @@ public class Usuario {
     @Column(nullable = false)
     private String passwordHash;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String rol;
-
-    public Long getId() { return id; }
-    public String getRut() { return rut; }
-    public void setRut(String rut) { this.rut = rut; }
-    public String getNombre() { return nombre; }
-    public void setNombre(String nombre) { this.nombre = nombre; }
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-    public String getPasswordHash() { return passwordHash; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
-    public String getRol() { return rol; }
-    public void setRol(String rol) { this.rol = rol; }
+    private Rol rol;
 }

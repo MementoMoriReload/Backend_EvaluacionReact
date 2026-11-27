@@ -7,7 +7,7 @@ import cl.duoc.authservice.dto.UsuarioResponse;
 import cl.duoc.authservice.model.Usuario;
 import cl.duoc.authservice.repository.UsuarioRepository;
 import cl.duoc.authservice.security.JwtService;
-
+import cl.duoc.authservice.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,12 +22,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 
-    private final UsuarioRepository repo;
+    private final AuthService service;
     private final PasswordEncoder encoder;
     private final JwtService jwt;
 
-    public AuthController(UsuarioRepository repo, PasswordEncoder encoder, JwtService jwt) {
-        this.repo = repo;
+    public AuthController(AuthService service, PasswordEncoder encoder, JwtService jwt) {
+        this.service = service;
         this.encoder = encoder;
         this.jwt = jwt;
     }
@@ -35,30 +35,13 @@ public class AuthController {
     @Operation(summary = "Registrar un nuevo usuario")
     @PostMapping("/registro")
     public ResponseEntity<UsuarioResponse> registro(@Valid @RequestBody RegistroRequest r) {
-        if (repo.existsByRutOrEmail(r.rut(), r.email())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "RUT o correo ya registrado");
-        }
-        Usuario u = new Usuario();
-        u.setRut(r.rut());
-        u.setNombre(r.nombre());
-        u.setEmail(r.email());
-        u.setPasswordHash(encoder.encode(r.pass()));
-        u.setRol("Empleado"); // el rol nunca viene del cliente
-        repo.save(u);
-        return ResponseEntity.status(HttpStatus.CREATED).body(toDto(u));
+        UsuarioResponse created  = service.saveUser(r);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @Operation(summary = "Iniciar sesión")
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest r) {
-       Usuario u = repo.findByRutOrEmail(r.username(), r.username())
-            .filter(x -> encoder.matches(r.password(), x.getPasswordHash()))
-            .orElseThrow(() -> new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED, "RUT/Usuario o contraseña incorrectos."));
-    return new AuthResponse(jwt.generar(u), "Bearer", jwt.getExpiresInSeconds(), toDto(u));
-    }
-
-    private UsuarioResponse toDto(Usuario u) {
-        return new UsuarioResponse(u.getRut(), u.getNombre(), u.getEmail(), u.getRol());
+        return service.login(r);
     }
 }
