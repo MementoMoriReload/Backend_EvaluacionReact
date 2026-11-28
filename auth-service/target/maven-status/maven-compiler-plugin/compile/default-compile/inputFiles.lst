@@ -1,0 +1,17 @@
+C:\Users\alexh\IdeaProjects\Backend_EvaluacionReact\auth-service\src\main\java\cl\duoc\authservice\AuthServiceApplication.java
+C:\Users\alexh\IdeaProjects\Backend_EvaluacionReact\auth-service\src\main\java\cl\duoc\authservice\config\DataInitializer.java
+C:\Users\alexh\IdeaProjects\Backend_EvaluacionReact\auth-service\src\main\java\cl\duoc\authservice\config\OpenApiConfig.java
+C:\Users\alexh\IdeaProjects\Backend_EvaluacionReact\auth-service\src\main\java\cl\duoc\authservice\config\PasswordConfig.java
+C:\Users\alexh\IdeaProjects\Backend_EvaluacionReact\auth-service\src\main\java\cl\duoc\authservice\controller\AuthController.java
+C:\Users\alexh\IdeaProjects\Backend_EvaluacionReact\auth-service\src\main\java\cl\duoc\authservice\dto\AuthResponse.java
+C:\Users\alexh\IdeaProjects\Backend_EvaluacionReact\auth-service\src\main\java\cl\duoc\authservice\dto\LoginRequest.java
+C:\Users\alexh\IdeaProjects\Backend_EvaluacionReact\auth-service\src\main\java\cl\duoc\authservice\dto\RegistroRequest.java
+C:\Users\alexh\IdeaProjects\Backend_EvaluacionReact\auth-service\src\main\java\cl\duoc\authservice\dto\UsuarioResponse.java
+C:\Users\alexh\IdeaProjects\Backend_EvaluacionReact\auth-service\src\main\java\cl\duoc\authservice\exception\ApiException.java
+C:\Users\alexh\IdeaProjects\Backend_EvaluacionReact\auth-service\src\main\java\cl\duoc\authservice\exception\ApiExceptionHandler.java
+C:\Users\alexh\IdeaProjects\Backend_EvaluacionReact\auth-service\src\main\java\cl\duoc\authservice\exception\GlobalExceptionHandler.java
+C:\Users\alexh\IdeaProjects\Backend_EvaluacionReact\auth-service\src\main\java\cl\duoc\authservice\model\Rol.java
+C:\Users\alexh\IdeaProjects\Backend_EvaluacionReact\auth-service\src\main\java\cl\duoc\authservice\model\Usuario.java
+C:\Users\alexh\IdeaProjects\Backend_EvaluacionReact\auth-service\src\main\java\cl\duoc\authservice\repository\UsuarioRepository.java
+C:\Users\alexh\IdeaProjects\Backend_EvaluacionReact\auth-service\src\main\java\cl\duoc\authservice\security\JwtService.java
+C:\Users\alexh\IdeaProjects\Backend_EvaluacionReact\auth-service\src\main\java\cl\duoc\authservice\service\AuthService.java

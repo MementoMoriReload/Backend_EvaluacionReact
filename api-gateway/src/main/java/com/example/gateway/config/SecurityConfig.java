@@ -2,6 +2,7 @@ package com.example.gateway.config;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.List;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -9,75 +10,85 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.convert.converter.Converter;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverterAdapter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.reactive.CorsConfigurationSource;
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 import reactor.core.publisher.Mono;
-import org.springframework.core.convert.converter.Converter;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
-import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverterAdapter;
-import reactor.core.publisher.Mono;
 
-/**
- * Seguridad del gateway, controlada por propiedades:
- *
- *  gateway.security.enabled=false  -> todo abierto (para desarrollo y primeras pruebas)
- *  gateway.security.enabled=true   -> exige un JWT (HS256) valido en "Authorization: Bearer ..."
- *                                     salvo en las rutas de gateway.security.public-paths
- *
- * El gateway solo VALIDA tokens. Quien los emite (login) es otro microservicio
- * que debe firmar con el mismo secreto.
- */
 @Configuration
 @EnableWebFluxSecurity
 public class SecurityConfig {
 
     @Bean
-SecurityWebFilterChain securityWebFilterChain(
-        ServerHttpSecurity http,
-        @Value("${gateway.security.enabled:false}") boolean enabled,
-        @Value("${gateway.security.public-paths:/actuator/health}") String[] publicPaths) {
+    SecurityWebFilterChain securityWebFilterChain(
+            ServerHttpSecurity http,
+            CorsConfigurationSource corsConfigurationSource,
+            @Value("${gateway.security.enabled:false}") boolean enabled,
+            @Value("${gateway.security.public-paths:/actuator/health}") String[] publicPaths) {
 
-    http.csrf(ServerHttpSecurity.CsrfSpec::disable)
-        .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
-        .formLogin(ServerHttpSecurity.FormLoginSpec::disable);
+        http.csrf(ServerHttpSecurity.CsrfSpec::disable)
+            .cors(cors -> cors.configurationSource(corsConfigurationSource))
+            .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
+            .formLogin(ServerHttpSecurity.FormLoginSpec::disable);
 
-    if (enabled) {
-        http.authorizeExchange(ex -> ex
-                .pathMatchers(HttpMethod.OPTIONS).permitAll()
-                .pathMatchers(publicPaths).permitAll()
-                .pathMatchers(HttpMethod.DELETE, "/api/v1/edificio/**").hasRole("Administrador")
-                .pathMatchers("/api/v1/edificio/**").hasAnyRole("Administrador", "Guardia")
-                .anyExchange().authenticated())
-            .oauth2ResourceServer(oauth -> oauth.jwt(jwt ->
-                    jwt.jwtAuthenticationConverter(rolConverter())));
-    } else {
-        http.authorizeExchange(ex -> ex.anyExchange().permitAll());
+        if (enabled) {
+            http.authorizeExchange(ex -> ex
+                    .pathMatchers(HttpMethod.OPTIONS).permitAll()
+                    .pathMatchers("/api/v1/auth/**", "/actuator/health", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
+                    .pathMatchers(publicPaths).permitAll()
+                    .pathMatchers(HttpMethod.DELETE, "/api/v1/edificio/**").hasRole("ADMINISTRADOR")
+                    .pathMatchers("/api/v1/edificio/**").hasAnyRole("ADMINISTRADOR", "GUARDIA")
+                    .anyExchange().authenticated())
+                .oauth2ResourceServer(oauth -> oauth.jwt(jwt ->
+                        jwt.jwtAuthenticationConverter(rolConverter())));
+        } else {
+            http.authorizeExchange(ex -> ex.anyExchange().permitAll());
+        }
+        return http.build();
     }
-    return http.build();
-}
 
-private Converter<Jwt, Mono<AbstractAuthenticationToken>> rolConverter() {
-    JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
-    authorities.setAuthoritiesClaimName("rol");
-    authorities.setAuthorityPrefix("ROLE_");
-    JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-    converter.setJwtGrantedAuthoritiesConverter(authorities);
-    return new ReactiveJwtAuthenticationConverterAdapter(converter);
-}
+    @Bean
+    CorsConfigurationSource corsConfigurationSource(
+            @Value("${FRONTEND_URL:http://localhost:5173}") String frontendUrl) {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of(
+                frontendUrl,
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "http://localhost:5500",
+                "http://127.0.0.1:5500"
+        ));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+
+    private Converter<Jwt, Mono<AbstractAuthenticationToken>> rolConverter() {
+        JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
+        authorities.setAuthoritiesClaimName("rol");
+        authorities.setAuthorityPrefix("ROLE_");
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(authorities);
+        return new ReactiveJwtAuthenticationConverterAdapter(converter);
+    }
 
     @Bean
     @ConditionalOnProperty(name = "gateway.security.enabled", havingValue = "true")

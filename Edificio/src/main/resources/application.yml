@@ -2,13 +2,13 @@ spring:
   application:
     name: edificio
   datasource:
-    url: jdbc:mysql://localhost:3306/Acceso_db?createDatabaseIfNotExist=true
-    username: root
-    password: ""
+    url: ${DB_URL:jdbc:mysql://localhost:3306/Acceso_db?createDatabaseIfNotExist=true}
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:}
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: ${SHOW_SQL:false}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
@@ -20,7 +20,7 @@ server:
 
 springdoc:
   api-docs:
-    enabled: TRUE
+    enabled: true
   swagger-ui:
-    enabled: TRUE
+    enabled: true
     path: /doc/swagger-ui.html

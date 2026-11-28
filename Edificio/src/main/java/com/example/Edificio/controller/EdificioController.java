@@ -47,7 +47,7 @@ public class EdificioController {
     }
 
     @Operation(summary = "Eliminar una persona de un edificio por RUT")
-    @DeleteMapping("/personas/{rut}")
+    @DeleteMapping("/personas/{id}/{rut}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable String id, @PathVariable String rut) {
         service.eliminar(id, rut);
